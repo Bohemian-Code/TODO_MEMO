@@ -4,13 +4,13 @@
 #include <conio.h>
 #include <time.h>
 
-#define MAX_TODO_NAME_LENGTH 300
+#define MAX_TODO_TITLE_LENGTH 300
 #define MAX_TODO_INFO_LENGTH 1000
 
 typedef struct todo{
 	unsigned short int year;
 	unsigned char month, day, hour, min, clear;
-	char title[MAX_TODO_NAME_LENGTH];
+	char title[MAX_TODO_TITLE_LENGTH];
 	char info[MAX_TODO_INFO_LENGTH];
 	struct todo *next;
 } TODO;
@@ -37,7 +37,7 @@ int counttdop(TODO *t_head, int page, int unit){
 }
 
 void loadtd(TODO **t_head, TODO **t_tail){
-	FILE *file = fopen("TODO.list", "rt");
+	FILE *file = fopen("TODO.txt", "rt");
 	TODO **t_temp = t_head;
 	int count;
 	
@@ -46,7 +46,10 @@ void loadtd(TODO **t_head, TODO **t_tail){
 		for(int i = 0; i < count; i++){
 			TODO *t_new = (TODO *)malloc(sizeof(TODO));
 			fscanf(file, "%d %d %d %d %d %d", &t_new->year, &t_new->month, &t_new->day, &t_new->hour, &t_new->min, &t_new->clear);
-			fscanf(file, "%s %s", t_new->title, t_new->info);
+			fseek(file, 2, SEEK_CUR);
+			fscanf(file, "%[^\n]", t_new->title);
+			fseek(file, 2, SEEK_CUR);
+			fscanf(file, "%[^\n]", t_new->info);
 			t_new->next = NULL;
 			*t_temp = t_new;
 			*t_tail = *t_temp;
@@ -57,12 +60,12 @@ void loadtd(TODO **t_head, TODO **t_tail){
 }
 
 void savetd(TODO *t_head){
-	FILE *file = fopen("TODO.list", "wt");
+	FILE *file = fopen("TODO.txt", "wt");
 	TODO *t_temp = t_head, *t_free;
 	fprintf(file, "%d\n", counttd(t_head));
 	while(t_temp != NULL){
-		fprintf(file, "%d\n%d\n%d\n%d\n%d\n%d\n", t_temp->year, t_temp->month, t_temp->day, t_temp->hour, t_temp->min, t_temp->clear);
-		fprintf(file, "%s\n%s\n", t_temp->title, t_temp->info);
+		fprintf(file, "\n%d\n%d\n%d\n%d\n%d\n%d\n", t_temp->year, t_temp->month, t_temp->day, t_temp->hour, t_temp->min, t_temp->clear);
+		fprintf(file, "%s\n%s", t_temp->title, t_temp->info);
 		t_free = t_temp;
 		t_temp = t_temp->next;
 		free(t_free);
@@ -85,9 +88,11 @@ void addtd(TODO **t_head, TODO **t_tail){
 	system("cls");
 	printf("--- ADD TODO ---\n");
 	printf("TITLE : ");
-	scanf("%s", t_new->title);
+	rewind(stdin);
+	scanf("%[^\n]", t_new->title);
 	printf("\nINFO : ");
-	scanf("%s", t_new->info);
+	rewind(stdin);
+	scanf("%[^\n]", t_new->info);
 	t_new->clear = 0;
 	t_new->next = NULL;
 	
@@ -135,6 +140,10 @@ void showtd(TODO *t_head, int unit, int page){
 
 void findtail(TODO *t_head, TODO **t_tail){
 	TODO *t_temp = t_head;
+	if(t_head == NULL){
+		*t_tail = NULL;
+		return;
+	}
 	while(t_temp->next != NULL){
 		t_temp = t_temp->next;
 	}
@@ -143,6 +152,12 @@ void findtail(TODO *t_head, TODO **t_tail){
 
 void deletetd(TODO **t_head, int num){
 	TODO **t_temp = t_head, *t_free;
+	if(counttd(*t_head) == 1 && num == 0){
+		t_free = *t_temp;
+		*t_head = NULL;
+		free(t_free);
+		return;
+	}
 	for(int i = 0; i < num; i++){
 		if(t_temp != NULL)
 		t_temp = &(*t_temp)->next;
